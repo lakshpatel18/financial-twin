@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import numpy as np
+from typing import Dict
 
 app = FastAPI()
 
@@ -15,54 +15,57 @@ app.add_middleware(
 
 class FinanceInput(BaseModel):
     salary: float
-    expenses: dict
+    expenses: Dict[str, float]
+    base_goal: float = 50000
+    optimistic_goal: float = 60000
+    conservative_goal: float = 40000
+
+def generate_projections(salary: float, expenses: Dict[str,float], months=60):
+    total_expenses = sum(expenses.values())
+    base = []
+    optimistic = []
+    conservative = []
+
+    for month in range(1, months+1):
+        base_monthly = salary - total_expenses
+        optimistic_monthly = (salary * (1 + 0.003)**month) - (total_expenses * (1 + 0.002)**month)
+        conservative_monthly = salary - (total_expenses * (1 + 0.005)**month)
+        base.append(base_monthly)
+        optimistic.append(optimistic_monthly)
+        conservative.append(conservative_monthly)
+
+    # cumulative savings
+    base_cum = [sum(base[:i+1]) for i in range(months)]
+    optimistic_cum = [sum(optimistic[:i+1]) for i in range(months)]
+    conservative_cum = [sum(conservative[:i+1]) for i in range(months)]
+
+    return base_cum, optimistic_cum, conservative_cum
+
+def goal_month(projections, target):
+    for idx, value in enumerate(projections):
+        if value >= target:
+            return idx + 1
+    return None
 
 @app.post("/forecast")
 def forecast(data: FinanceInput):
-    total_expenses = sum(data.expenses.values())
-    monthly_savings = data.salary - total_expenses
+    base_cum, optimistic_cum, conservative_cum = generate_projections(data.salary, data.expenses)
 
-    months = np.arange(1, 61)
-
-    # Base scenario
-    base_noise = np.random.normal(0, monthly_savings * 0.05, size=60)
-    base = (monthly_savings * months + base_noise.cumsum()).tolist()
-
-    # Optimistic scenario (+5% salary, -5% expenses)
-    opt_savings = (data.salary*1.05 - total_expenses*0.95)
-    opt_noise = np.random.normal(0, opt_savings*0.05, size=60)
-    optimistic = (opt_savings * months + opt_noise.cumsum()).tolist()
-
-    # Conservative scenario (-5% salary, +5% expenses)
-    cons_savings = (data.salary*0.95 - total_expenses*1.05)
-    cons_noise = np.random.normal(0, cons_savings*0.05, size=60)
-    conservative = (cons_savings * months + cons_noise.cumsum()).tolist()
-
-    # Summary projections (Base scenario)
     summary = {
-        "monthly": base[0],
-        "yearly": base[11],
-        "2_years": base[23],
-        "5_years": base[59],
+        "monthly": base_cum[0],                 # first month savings
+        "yearly": base_cum[11] if len(base_cum) > 11 else base_cum[-1], # after 1 year
+        "2_years": base_cum[23] if len(base_cum) > 23 else base_cum[-1],
+        "5_years": base_cum[-1]
     }
 
-    # Recommendation
-    highest_expense = max(data.expenses, key=data.expenses.get)
-    highest_value = data.expenses[highest_expense]
-    savings_ratio = monthly_savings / data.salary if data.salary else 0
-    if savings_ratio < 0.1:
-        recommendation = f"You are saving less than 10% of your salary. Reduce '{highest_expense}' (${highest_value}/month)."
-    elif savings_ratio > 0.3:
-        recommendation = "Excellent! You are saving a healthy portion of your income."
-    else:
-        recommendation = f"Your savings are okay, but reducing '{highest_expense}' (${highest_value}/month) could boost it further."
-
-    return {
+    response = {
         "summary": summary,
         "scenarios": {
-            "base": base,
-            "optimistic": optimistic,
-            "conservative": conservative
+            "base": base_cum,
+            "optimistic": optimistic_cum,
+            "conservative": conservative_cum
         },
-        "recommendation": recommendation
+        "recommendation": "Consider saving more on discretionary expenses."
     }
+
+    return response

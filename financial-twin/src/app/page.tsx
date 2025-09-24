@@ -46,14 +46,14 @@ export default function Home() {
     fetchForecast();
   }, [salary, expenses]);
 
-  const chartData = forecast
-    ? forecast.scenarios.base.map((_, idx) => ({
-        month: idx + 1,
-        base: forecast.scenarios.base[idx],
-        optimistic: forecast.scenarios.optimistic[idx],
-        conservative: forecast.scenarios.conservative[idx],
-      }))
-    : [];
+  const chartData = forecast?.scenarios?.base
+? forecast.scenarios.base.map((_, idx) => ({
+      month: idx + 1,
+      base: forecast.scenarios.base[idx],
+      optimistic: forecast.scenarios.optimistic[idx],
+      conservative: forecast.scenarios.conservative[idx],
+    }))
+  : [];
 
   const exportCSV = () => {
     if (!forecast) return;
@@ -83,7 +83,7 @@ export default function Home() {
 
     const chartElement = document.getElementById("chart-container");
     if (chartElement) {
-      const canvas = await html2canvas(chartElement);
+      const canvas = await html2canvas(chartElement, { scale: 2 });
       const imgData = canvas.toDataURL("image/png");
       doc.addPage();
       doc.text("Savings Projection Chart", 10, 10);
@@ -98,9 +98,18 @@ export default function Home() {
     return idx >= 0 ? idx + 1 : null;
   };
 
-  const baseGoalMonth = forecast ? goalMonth(forecast.scenarios.base, targetSavings) : null;
-  const optimisticGoalMonth = forecast ? goalMonth(forecast.scenarios.optimistic, targetSavings) : null;
-  const conservativeGoalMonth = forecast ? goalMonth(forecast.scenarios.conservative, targetSavings) : null;
+  const baseGoalMonth = forecast?.scenarios?.base
+  ? goalMonth(forecast.scenarios.base, targetSavings)
+  : null;
+
+const optimisticGoalMonth = forecast?.scenarios?.optimistic
+  ? goalMonth(forecast.scenarios.optimistic, targetSavings)
+  : null;
+
+const conservativeGoalMonth = forecast?.scenarios?.conservative
+  ? goalMonth(forecast.scenarios.conservative, targetSavings)
+  : null;
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
@@ -161,10 +170,19 @@ export default function Home() {
           <div className="p-4 bg-green-100 rounded shadow mb-6">
             <h2 className="text-xl font-semibold mb-2">Projections:</h2>
             <ul className="list-disc pl-5">
-              <li>Monthly Savings: ${forecast.summary.monthly.toFixed(2)}</li>
-              <li>Yearly Savings: ${forecast.summary.yearly.toFixed(2)}</li>
-              <li>2 Years: ${forecast.summary["2_years"].toFixed(2)}</li>
-              <li>5 Years: ${forecast.summary["5_years"].toFixed(2)}</li>
+              <li>
+  Monthly Savings: ${forecast?.summary?.monthly?.toFixed(2) ?? "0.00"}
+</li>
+<li>
+  Yearly Savings: ${forecast?.summary?.yearly?.toFixed(2) ?? "0.00"}
+</li>
+<li>
+  2 Years: ${forecast?.summary?.["2_years"]?.toFixed(2) ?? "0.00"}
+</li>
+<li>
+  5 Years: ${forecast?.summary?.["5_years"]?.toFixed(2) ?? "0.00"}
+</li>
+
             </ul>
             <p className="mt-4 font-medium">{forecast.recommendation}</p>
           </div>
@@ -172,70 +190,28 @@ export default function Home() {
           {/* Chart */}
           <div id="chart-container" className="w-full h-96">
             <ResponsiveContainer width="100%" height={400}>
-  <LineChart
-    data={chartData}
-    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-  >
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis
-      dataKey="month"
-      label={{ value: "Month", position: "insideBottomRight", offset: -5 }}
-    />
-    <YAxis label={{ value: "Savings ($)", angle: -90, position: "insideLeft" }} />
-    <Tooltip />
-    <Legend />
-    
-    {/* Lines for each scenario */}
-    <Line
-      type="monotone"
-      dataKey="base"
-      stroke="#8884d8"
-      strokeWidth={2}
-      name="Base (BG)"
-    />
-    <Line
-      type="monotone"
-      dataKey="optimistic"
-      stroke="#82ca9d"
-      strokeWidth={2}
-      name="Optimistic (OG)"
-    />
-    <Line
-      type="monotone"
-      dataKey="conservative"
-      stroke="#ff6b6b"
-      strokeWidth={2}
-      name="Conservative (CG)"
-    />
+              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" label={{ value: "Month", position: "insideBottomRight", offset: -5 }} />
+                <YAxis label={{ value: "Savings ($)", angle: -90, position: "insideLeft" }} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="base" stroke="#8884d8" strokeWidth={2} name="Base (BG)" />
+                <Line type="monotone" dataKey="optimistic" stroke="#82ca9d" strokeWidth={2} name="Optimistic (OG)" />
+                <Line type="monotone" dataKey="conservative" stroke="#ff6b6b" strokeWidth={2} name="Conservative (CG)" />
 
-    {/* ReferenceLines for goal achievement */}
-    {baseGoalMonth && (
-      <ReferenceLine
-        x={baseGoalMonth}
-        stroke="#8884d8"
-        strokeDasharray="3 3"
-        label={{ value: "BG", position: "top", fill: "#8884d8" }}
-      />
-    )}
-    {optimisticGoalMonth && (
-      <ReferenceLine
-        x={optimisticGoalMonth}
-        stroke="#82ca9d"
-        strokeDasharray="3 3"
-        label={{ value: "OG", position: "top", fill: "#82ca9d" }}
-      />
-    )}
-    {conservativeGoalMonth && (
-      <ReferenceLine
-        x={conservativeGoalMonth}
-        stroke="#ff6b6b"
-        strokeDasharray="3 3"
-        label={{ value: "CG", position: "top", fill: "#ff6b6b" }}
-      />
-    )}
-  </LineChart>
-</ResponsiveContainer>
-
+                {/* ReferenceLines */}
+                {baseGoalMonth && (
+                  <ReferenceLine x={baseGoalMonth} stroke="#8884d8" strokeDasharray="3 3" label={{ value: "BG", position: "top", fill: "#8884d8" }} />
+                )}
+                {optimisticGoalMonth && (
+                  <ReferenceLine x={optimisticGoalMonth} stroke="#82ca9d" strokeDasharray="3 3" label={{ value: "OG", position: "top", fill: "#82ca9d" }} />
+                )}
+                {conservativeGoalMonth && (
+                  <ReferenceLine x={conservativeGoalMonth} stroke="#ff6b6b" strokeDasharray="3 3" label={{ value: "CG", position: "top", fill: "#ff6b6b" }} />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
           </div>
 
           {/* Goal Info */}
