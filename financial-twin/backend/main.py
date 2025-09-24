@@ -15,27 +15,38 @@ app.add_middleware(
 
 class FinanceInput(BaseModel):
     salary: float
-    expenses: dict  # e.g., {"rent": 1000, "food": 300, "entertainment": 200}
+    expenses: dict
 
 @app.post("/forecast")
 def forecast(data: FinanceInput):
     total_expenses = sum(data.expenses.values())
     monthly_savings = data.salary - total_expenses
 
-    # Generate 60 months projection with slight variation
     months = np.arange(1, 61)
-    noise = np.random.normal(0, monthly_savings * 0.05, size=60)
-    projected_savings = (monthly_savings * months + noise.cumsum()).tolist()
 
-    # Prepare summary projections for easy display
+    # Base scenario
+    base_noise = np.random.normal(0, monthly_savings * 0.05, size=60)
+    base = (monthly_savings * months + base_noise.cumsum()).tolist()
+
+    # Optimistic scenario (+5% salary, -5% expenses)
+    opt_savings = (data.salary*1.05 - total_expenses*0.95)
+    opt_noise = np.random.normal(0, opt_savings*0.05, size=60)
+    optimistic = (opt_savings * months + opt_noise.cumsum()).tolist()
+
+    # Conservative scenario (-5% salary, +5% expenses)
+    cons_savings = (data.salary*0.95 - total_expenses*1.05)
+    cons_noise = np.random.normal(0, cons_savings*0.05, size=60)
+    conservative = (cons_savings * months + cons_noise.cumsum()).tolist()
+
+    # Summary projections (Base scenario)
     summary = {
-        "monthly": projected_savings[0],
-        "yearly": projected_savings[11],
-        "2_years": projected_savings[23],
-        "5_years": projected_savings[59],
+        "monthly": base[0],
+        "yearly": base[11],
+        "2_years": base[23],
+        "5_years": base[59],
     }
 
-    # Personalized recommendation
+    # Recommendation
     highest_expense = max(data.expenses, key=data.expenses.get)
     highest_value = data.expenses[highest_expense]
     savings_ratio = monthly_savings / data.salary if data.salary else 0
@@ -48,6 +59,10 @@ def forecast(data: FinanceInput):
 
     return {
         "summary": summary,
-        "monthly_projection": projected_savings,
+        "scenarios": {
+            "base": base,
+            "optimistic": optimistic,
+            "conservative": conservative
+        },
         "recommendation": recommendation
     }
