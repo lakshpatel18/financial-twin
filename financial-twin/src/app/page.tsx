@@ -1,8 +1,16 @@
 "use client";
 import { useState } from "react";
 
+interface Projections {
+  monthly: number;
+  yearly: number;
+  "2_years": number;
+  "5_years": number;
+}
+
 interface ForecastResponse {
-  savings: number;
+  projections: Projections;
+  recommendation: string;
 }
 
 export default function Home() {
@@ -12,10 +20,9 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (salary === "" || expenses === "") return;
 
-    const res = await fetch("http://localhost:8000/forecast", {
+    const res = await fetch("http://localhost:8001/forecast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ salary, expenses }),
@@ -54,10 +61,15 @@ export default function Home() {
       </form>
 
       {forecast && (
-        <div className="mt-6 p-4 bg-green-100 rounded shadow">
-          <p>
-            <strong>Projected Savings (12 months):</strong> ${forecast.savings}
-          </p>
+        <div className="mt-6 p-4 bg-green-100 rounded shadow w-full max-w-md">
+          <h2 className="text-xl font-semibold mb-2">Projections:</h2>
+          <ul className="list-disc pl-5">
+            <li>Monthly Savings: ${forecast.projections.monthly}</li>
+            <li>Yearly Savings: ${forecast.projections.yearly}</li>
+            <li>2 Years: ${forecast.projections["2_years"]}</li>
+            <li>5 Years: ${forecast.projections["5_years"]}</li>
+          </ul>
+          <p className="mt-4 font-medium">{forecast.recommendation}</p>
         </div>
       )}
     </div>

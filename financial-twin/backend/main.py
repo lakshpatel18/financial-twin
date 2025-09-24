@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Allow frontend (localhost:3000) to access backend
 origins = ["http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
@@ -13,14 +12,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Input model
 class FinanceInput(BaseModel):
     salary: float
     expenses: float
 
-# Endpoint to calculate savings
 @app.post("/forecast")
 def forecast(data: FinanceInput):
     monthly_savings = data.salary - data.expenses
     yearly_savings = monthly_savings * 12
-    return {"savings": yearly_savings}
+
+    # Future projections assuming constant savings
+    projections = {
+        "monthly": monthly_savings,
+        "yearly": yearly_savings,
+        "2_years": yearly_savings * 2,
+        "5_years": yearly_savings * 5
+    }
+
+    # Simple recommendations
+    recommendation = ""
+    savings_ratio = monthly_savings / data.salary if data.salary else 0
+    if savings_ratio < 0.1:
+        recommendation = "Try reducing expenses to save more each month."
+    elif savings_ratio > 0.3:
+        recommendation = "Great job! You are saving a healthy portion of your income."
+
+    return {
+        "projections": projections,
+        "recommendation": recommendation
+    }
