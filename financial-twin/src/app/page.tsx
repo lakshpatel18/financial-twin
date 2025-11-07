@@ -1,6 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -47,78 +57,31 @@ export default function Home() {
   }, [salary, expenses]);
 
   const chartData = forecast?.scenarios?.base
-? forecast.scenarios.base.map((_, idx) => ({
-      month: idx + 1,
-      base: forecast.scenarios.base[idx],
-      optimistic: forecast.scenarios.optimistic[idx],
-      conservative: forecast.scenarios.conservative[idx],
-    }))
-  : [];
+    ? forecast.scenarios.base.map((_, idx) => ({
+        month: idx + 1,
+        base: forecast.scenarios.base[idx],
+        optimistic: forecast.scenarios.optimistic[idx],
+        conservative: forecast.scenarios.conservative[idx],
+      }))
+    : [];
 
-  const exportCSV = () => {
-    if (!forecast) return;
-    let csv = "Month,Base,Optimistic,Conservative\n";
-    forecast.scenarios.base.forEach((_, idx) => {
-      csv += `${idx + 1},${forecast.scenarios.base[idx]},${forecast.scenarios.optimistic[idx]},${forecast.scenarios.conservative[idx]}\n`;
-    });
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    saveAs(blob, "financial_projection.csv");
-  };
-
-  const exportPDF = async () => {
-    if (!forecast) return;
-    const doc = new jsPDF("p", "mm", "a4");
-
-    doc.setFontSize(16);
-    doc.text("Financial Health Twin Projections", 10, 10);
-
-    doc.setFontSize(12);
-    doc.text(`Monthly Salary: $${salary}`, 10, 20);
-    doc.text(`Expenses: ${JSON.stringify(expenses)}`, 10, 30);
-    doc.text("Summary:", 10, 40);
-    doc.text(`Monthly: $${forecast.summary.monthly.toFixed(2)}`, 10, 50);
-    doc.text(`Yearly: $${forecast.summary.yearly.toFixed(2)}`, 10, 60);
-    doc.text(`2 Years: $${forecast.summary["2_years"].toFixed(2)}`, 10, 70);
-    doc.text(`5 Years: $${forecast.summary["5_years"].toFixed(2)}`, 10, 80);
-
-    const chartElement = document.getElementById("chart-container");
-    if (chartElement) {
-      const canvas = await html2canvas(chartElement, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
-      doc.addPage();
-      doc.text("Savings Projection Chart", 10, 10);
-      doc.addImage(imgData, "PNG", 10, 20, 190, 100);
-    }
-
-    doc.save("financial_projection.pdf");
-  };
-
-  const goalMonth = (arr: number[], target: number) => {
-    const idx = arr.findIndex((savings) => savings >= target);
-    return idx >= 0 ? idx + 1 : null;
-  };
-
-  const baseGoalMonth = forecast?.scenarios?.base
-  ? goalMonth(forecast.scenarios.base, targetSavings)
-  : null;
-
-const optimisticGoalMonth = forecast?.scenarios?.optimistic
-  ? goalMonth(forecast.scenarios.optimistic, targetSavings)
-  : null;
-
-const conservativeGoalMonth = forecast?.scenarios?.conservative
-  ? goalMonth(forecast.scenarios.conservative, targetSavings)
-  : null;
-
+  const baseGoalMonth =
+    forecast?.scenarios?.base?.findIndex((s) => s >= targetSavings) + 1 || null;
+  const optimisticGoalMonth =
+    forecast?.scenarios?.optimistic?.findIndex((s) => s >= targetSavings) + 1 ||
+    null;
+  const conservativeGoalMonth =
+    forecast?.scenarios?.conservative?.findIndex((s) => s >= targetSavings) + 1 ||
+    null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold mb-6">Financial Health Twin</h1>
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-50 to-purple-100 p-6 font-sans">
+      <h1 className="text-4xl font-bold mb-8 text-gray-800">💎 Financial Health Twin</h1>
 
-      {/* Sliders */}
-      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md space-y-6">
+      {/* Sliders Section */}
+      <div className="w-full max-w-md bg-white/30 backdrop-blur-lg rounded-2xl p-6 shadow-xl space-y-6 border border-white/20">
         <div>
-          <label className="block mb-1 font-medium">Monthly Salary: ${salary}</label>
+          <label className="block mb-1 font-semibold text-gray-700">Monthly Salary: ${salary}</label>
           <input
             type="range"
             min={1000}
@@ -126,13 +89,13 @@ const conservativeGoalMonth = forecast?.scenarios?.conservative
             step={100}
             value={salary}
             onChange={(e) => setSalary(Number(e.target.value))}
-            className="w-full"
+            className="w-full accent-purple-400"
           />
         </div>
 
         {Object.keys(expenses).map((key) => (
           <div key={key}>
-            <label className="block mb-1 font-medium">
+            <label className="block mb-1 font-semibold text-gray-700">
               {key.charAt(0).toUpperCase() + key.slice(1)}: ${expenses[key]}
             </label>
             <input
@@ -144,14 +107,15 @@ const conservativeGoalMonth = forecast?.scenarios?.conservative
               onChange={(e) =>
                 setExpenses({ ...expenses, [key]: Number(e.target.value) })
               }
-              className="w-full"
+              className="w-full accent-pink-400"
             />
           </div>
         ))}
 
-        {/* Target Savings Slider */}
         <div>
-          <label className="block mb-1 font-medium">Target Savings: ${targetSavings}</label>
+          <label className="block mb-1 font-semibold text-gray-700">
+            Target Savings: ${targetSavings}
+          </label>
           <input
             type="range"
             min={1000}
@@ -159,65 +123,53 @@ const conservativeGoalMonth = forecast?.scenarios?.conservative
             step={1000}
             value={targetSavings}
             onChange={(e) => setTargetSavings(Number(e.target.value))}
-            className="w-full"
+            className="w-full accent-green-400"
           />
         </div>
       </div>
 
-      {/* Forecast */}
+      {/* Forecast Section */}
       {forecast && (
-        <div className="mt-6 w-full max-w-3xl">
-          <div className="p-4 bg-green-100 rounded shadow mb-6">
-            <h2 className="text-xl font-semibold mb-2">Projections:</h2>
-            <ul className="list-disc pl-5">
-              <li>
-  Monthly Savings: ${forecast?.summary?.monthly?.toFixed(2) ?? "0.00"}
-</li>
-<li>
-  Yearly Savings: ${forecast?.summary?.yearly?.toFixed(2) ?? "0.00"}
-</li>
-<li>
-  2 Years: ${forecast?.summary?.["2_years"]?.toFixed(2) ?? "0.00"}
-</li>
-<li>
-  5 Years: ${forecast?.summary?.["5_years"]?.toFixed(2) ?? "0.00"}
-</li>
-
+        <div className="mt-10 w-full max-w-3xl space-y-8">
+          {/* Summary Card */}
+          <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">📊 Projections</h2>
+            <ul className="grid grid-cols-2 gap-4 text-gray-700 font-medium">
+              <li>Monthly Savings: ${forecast.summary.monthly.toFixed(2)}</li>
+              <li>Yearly Savings: ${forecast.summary.yearly.toFixed(2)}</li>
+              <li>2 Years: ${forecast.summary["2_years"].toFixed(2)}</li>
+              <li>5 Years: ${forecast.summary["5_years"].toFixed(2)}</li>
             </ul>
-            <p className="mt-4 font-medium">{forecast.recommendation}</p>
+            <p className="mt-4 text-gray-800 font-medium">{forecast.recommendation}</p>
           </div>
 
-          {/* Chart */}
-          <div id="chart-container" className="w-full h-96">
-            <ResponsiveContainer width="100%" height={400}>
+          {/* Chart Card */}
+          <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20 h-[450px]">
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" label={{ value: "Month", position: "insideBottomRight", offset: -5 }} />
-                <YAxis label={{ value: "Savings ($)", angle: -90, position: "insideLeft" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+                <XAxis
+                  dataKey="month"
+                  label={{ value: "Month", position: "insideBottomRight", offset: -5, fill: "#555" }}
+                />
+                <YAxis label={{ value: "Savings ($)", angle: -90, position: "insideLeft", fill: "#555" }} />
                 <Tooltip />
                 <Legend />
                 <Line type="monotone" dataKey="base" stroke="#8884d8" strokeWidth={2} name="Base (BG)" />
                 <Line type="monotone" dataKey="optimistic" stroke="#82ca9d" strokeWidth={2} name="Optimistic (OG)" />
                 <Line type="monotone" dataKey="conservative" stroke="#ff6b6b" strokeWidth={2} name="Conservative (CG)" />
 
-                {/* ReferenceLines */}
-                {baseGoalMonth && (
-                  <ReferenceLine x={baseGoalMonth} stroke="#8884d8" strokeDasharray="3 3" label={{ value: "BG", position: "top", fill: "#8884d8" }} />
-                )}
-                {optimisticGoalMonth && (
-                  <ReferenceLine x={optimisticGoalMonth} stroke="#82ca9d" strokeDasharray="3 3" label={{ value: "OG", position: "top", fill: "#82ca9d" }} />
-                )}
-                {conservativeGoalMonth && (
-                  <ReferenceLine x={conservativeGoalMonth} stroke="#ff6b6b" strokeDasharray="3 3" label={{ value: "CG", position: "top", fill: "#ff6b6b" }} />
-                )}
+                {baseGoalMonth && <ReferenceLine x={baseGoalMonth} stroke="#8884d8" strokeDasharray="3 3" label="BG" />}
+                {optimisticGoalMonth && <ReferenceLine x={optimisticGoalMonth} stroke="#82ca9d" strokeDasharray="3 3" label="OG" />}
+                {conservativeGoalMonth && <ReferenceLine x={conservativeGoalMonth} stroke="#ff6b6b" strokeDasharray="3 3" label="CG" />}
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Goal Info */}
-          <div className="mt-4 p-4 bg-yellow-100 rounded shadow">
-            <h3 className="font-semibold mb-2">Goal Simulation</h3>
-            <ul className="list-disc pl-5">
+          {/* Goal Info Card */}
+          <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
+            <h3 className="font-semibold mb-2 text-gray-800">🎯 Goal Simulation</h3>
+            <ul className="text-gray-700 font-medium">
               <li>Base (BG): {baseGoalMonth ? `${baseGoalMonth} month(s)` : "Goal not reached"}</li>
               <li>Optimistic (OG): {optimisticGoalMonth ? `${optimisticGoalMonth} month(s)` : "Goal not reached"}</li>
               <li>Conservative (CG): {conservativeGoalMonth ? `${conservativeGoalMonth} month(s)` : "Goal not reached"}</li>
@@ -225,17 +177,11 @@ const conservativeGoalMonth = forecast?.scenarios?.conservative
           </div>
 
           {/* Export Buttons */}
-          <div className="flex gap-4 mt-6 justify-center">
-            <button
-              onClick={exportCSV}
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition font-semibold"
-            >
+          <div className="flex gap-4 justify-center">
+            <button className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-2xl shadow hover:bg-blue-700 transition font-semibold">
               📄 Export CSV
             </button>
-            <button
-              onClick={exportPDF}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg shadow hover:bg-green-700 transition font-semibold"
-            >
+            <button className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-2xl shadow hover:bg-green-700 transition font-semibold">
               📊 Export PDF
             </button>
           </div>
